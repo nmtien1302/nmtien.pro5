@@ -1,0 +1,15 @@
+{
+  "name": "my-profile-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website profile cá nhân: popup chào mừng, music player đổi nhạc, gửi thư cho admin (có tên / ẩn danh). Không cần cài thư viện.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Avatar tạm — thay bằng ảnh của bạn (assets/avatar.jpg) rồi sửa đường dẫn trong js/config.js -->
+  <circle cx="100" cy="100" r="100" fill="#c0aa8a"/>
+  <circle cx="100" cy="100" r="92" fill="none" stroke="#8f7c3a" stroke-width="2"/>
+  <circle cx="100" cy="80" r="34" fill="#371e13"/>
+  <path d="M34 182c6-40 33-60 66-60s60 20 66 60a100 100 0 0 1-132 0z" fill="#371e13"/>
+</svg>
