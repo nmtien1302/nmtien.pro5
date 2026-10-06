@@ -1,0 +1,22 @@
+# Cấu hình deploy một chạm lên Render (https://render.com) — gói Free.
+# Cách dùng: đẩy code lên GitHub → Render Dashboard → New → Blueprint → chọn repo → điền 3 biến bên dưới.
+services:
+  - type: web
+    name: my-profile-website
+    runtime: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ADMIN_PASSWORD           # Mật khẩu vào /admin — Render sẽ hỏi khi tạo
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL   # Lấy ở Upstash → Database → REST API (xem README mục 5)
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: TRUST_PROXY
+        value: "true"
+      - key: NODE_VERSION
+        value: "22"

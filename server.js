@@ -50,33 +50,73 @@ const MAX_NAME_LENGTH = 50;
 const MAX_BODY_BYTES = 20 * 1024;
 const TRUST_PROXY = String(process.env.TRUST_PROXY ?? "true").toLowerCase() !== "false";
 const DATA_DIR = path.join(__dirname, "data");
-const LETTERS_FILE = path.join(DATA_DIR, "letters.json");
-const STATS_FILE = path.join(DATA_DIR, "stats.json");
 const PUBLIC_DIR = path.join(__dirname, "public");
+// Lưu trữ ngoài (tuỳ chọn): Upstash Redis — dùng khi host có ổ đĩa tạm (Render / Railway gói miễn phí)
+const UPSTASH_URL = (process.env.UPSTASH_REDIS_REST_URL || "").replace(/\/+$/, "");
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const KEY_PREFIX = process.env.STORAGE_PREFIX || "profile";
 
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 if (!ADMIN_PASSWORD) {
   ADMIN_PASSWORD = "admin123";
-  console.warn("⚠️  Chưa đặt ADMIN_PASSWORD trong file .env → đang dùng mật khẩu mặc định 'admin123'.");
+  console.warn("  Chưa đặt ADMIN_PASSWORD trong file .env → đang dùng mật khẩu mặc định 'admin123'.");
   console.warn("   Hãy copy .env.example thành .env và đổi mật khẩu TRƯỚC KHI đưa web lên mạng!");
 }
 
-/* ---------- Lưu trữ JSON đơn giản ---------- */
-fs.mkdirSync(DATA_DIR, { recursive: true });
+/* ---------- Lưu trữ ----------
+ *  Mặc định: file JSON trong thư mục data/ (chạy trên máy / VPS).
+ *  Nếu đặt UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN: lưu trên Upstash Redis (miễn phí),
+ *  dùng cho các host có ổ đĩa tạm như Render / Railway — thư sẽ không mất khi server khởi động lại.
+ *  Cả hai cùng giao diện: readJson(key, fallback) / writeJson(key, data), key là "letters" hoặc "stats". */
+const fileStore = {
+  name: "file (data/*.json)",
+  path: (key) => path.join(DATA_DIR, `${key}.json`),
+  async read(key, fallback) {
+    try {
+      return JSON.parse(await fsp.readFile(this.path(key), "utf8"));
+    } catch (err) {
+      if (err.code === "ENOENT") return fallback;
+      throw err;
+    }
+  },
+  async write(key, data) {
+    const file = this.path(key);
+    const tmp = `${file}.${process.pid}.tmp`;
+    await fsp.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
+    await fsp.rename(tmp, file); // ghi file tạm rồi đổi tên → không bao giờ bị file hỏng dở
+  },
+};
 
-async function readJson(file, fallback) {
-  try {
-    return JSON.parse(await fsp.readFile(file, "utf8"));
-  } catch (err) {
-    if (err.code === "ENOENT") return fallback;
-    throw err;
-  }
-}
-async function writeJson(file, data) {
-  const tmp = `${file}.${process.pid}.tmp`;
-  await fsp.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fsp.rename(tmp, file); // ghi file tạm rồi đổi tên → không bao giờ bị file hỏng dở
-}
+const upstashStore = {
+  name: "Upstash Redis",
+  async command(...args) {
+    const res = await fetch(UPSTASH_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(`Upstash: ${data.error || `HTTP ${res.status}`}`);
+    return data.result;
+  },
+  async read(key, fallback) {
+    const raw = await this.command("GET", `${KEY_PREFIX}:${key}`);
+    if (raw === null || raw === undefined || raw === "") return fallback;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  },
+  async write(key, data) {
+    await this.command("SET", `${KEY_PREFIX}:${key}`, JSON.stringify(data));
+  },
+};
+
+const store = UPSTASH_URL && UPSTASH_TOKEN ? upstashStore : fileStore;
+if (store === fileStore) fs.mkdirSync(DATA_DIR, { recursive: true });
+const readJson = (key, fallback) => store.read(key, fallback);
+const writeJson = (key, data) => store.write(key, data);
 // Các thao tác ghi chạy tuần tự để không ghi đè lẫn nhau
 let queue = Promise.resolve();
 function withLock(task) {
@@ -162,7 +202,7 @@ function rateLimit({ windowMs, max, message }) {
     }
   };
 }
-const limitLetters = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: "Bạn gửi hơi nhanh, đợi một chút rồi gửi tiếp nhé 💌" });
+const limitLetters = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: "Bạn gửi hơi nhanh, đợi một chút rồi gửi tiếp nhé" });
 const limitLogin = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: "Sai mật khẩu quá nhiều lần, thử lại sau 15 phút" });
 const limitVisit = rateLimit({ windowMs: 60 * 1000, max: 20, message: "Thử lại sau nhé" });
 
@@ -202,19 +242,19 @@ function safeEqual(a, b) {
  *  API
  * ============================================================ */
 const api = {
-  "GET /api/health": async () => [200, { ok: true }],
+  "GET /api/health": async () => [200, { ok: true, storage: store === upstashStore ? "upstash" : "file" }],
 
   /* ----- Lượt ghé thăm ----- */
   "GET /api/visit": async () => {
-    const stats = await readJson(STATS_FILE, { views: 0 });
+    const stats = await readJson("stats", { views: 0 });
     return [200, { views: stats.views || 0 }];
   },
   "POST /api/visit": async (req) => {
     limitVisit(req);
     const views = await withLock(async () => {
-      const stats = await readJson(STATS_FILE, { views: 0 });
+      const stats = await readJson("stats", { views: 0 });
       stats.views = (stats.views || 0) + 1;
-      await writeJson(STATS_FILE, stats);
+      await writeJson("stats", stats);
       return stats.views;
     });
     return [200, { views }];
@@ -241,9 +281,9 @@ const api = {
       read: false,
     };
     await withLock(async () => {
-      const letters = await readJson(LETTERS_FILE, []);
+      const letters = await readJson("letters", []);
       letters.push(letter);
-      await writeJson(LETTERS_FILE, letters);
+      await writeJson("letters", letters);
     });
     return [201, { ok: true }];
   },
@@ -262,7 +302,7 @@ const api = {
   },
   "GET /api/admin/letters": async (req) => {
     requireAdmin(req);
-    const letters = await readJson(LETTERS_FILE, []);
+    const letters = await readJson("letters", []);
     letters.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     return [200, { letters, total: letters.length, unread: letters.filter((l) => !l.read).length }];
   },
@@ -271,11 +311,11 @@ const api = {
     const body = await readJsonBody(req);
     const read = body.read !== false;
     const letter = await withLock(async () => {
-      const letters = await readJson(LETTERS_FILE, []);
+      const letters = await readJson("letters", []);
       const found = letters.find((l) => l.id === params.id);
       if (!found) return null;
       found.read = read;
-      await writeJson(LETTERS_FILE, letters);
+      await writeJson("letters", letters);
       return found;
     });
     if (!letter) throw new HttpError(404, "Không tìm thấy thư");
@@ -284,11 +324,11 @@ const api = {
   "DELETE /api/admin/letters/:id": async (req, params) => {
     requireAdmin(req);
     const removed = await withLock(async () => {
-      const letters = await readJson(LETTERS_FILE, []);
+      const letters = await readJson("letters", []);
       const i = letters.findIndex((l) => l.id === params.id);
       if (i === -1) return false;
       letters.splice(i, 1);
-      await writeJson(LETTERS_FILE, letters);
+      await writeJson("letters", letters);
       return true;
     });
     if (!removed) throw new HttpError(404, "Không tìm thấy thư");
@@ -456,9 +496,10 @@ const server = http.createServer(async (req, res) => {
 function listen(port, triesLeft) {
   const onListening = () => {
     server.removeListener("error", onError);
-    if (port !== PORT) console.log(`ℹ️  Cổng ${PORT} không dùng được nên đang chạy ở cổng ${port}. Muốn cố định, đặt PORT=${port} trong file .env.`);
-    console.log(`✅ Website đang chạy:  http://localhost:${port}`);
-    console.log(`🔐 Hộp thư admin:      http://localhost:${port}/admin`);
+    if (port !== PORT) console.log(`ℹ  Cổng ${PORT} không dùng được nên đang chạy ở cổng ${port}. Muốn cố định, đặt PORT=${port} trong file .env.`);
+    console.log(` Website đang chạy:  http://localhost:${port}`);
+    console.log(` Hộp thư admin:      http://localhost:${port}/admin`);
+    console.log(` Lưu thư bằng:       ${store.name}`);
     console.log("   Nhấn Ctrl + C để dừng.");
   };
   const onError = (err) => {
@@ -469,7 +510,7 @@ function listen(port, triesLeft) {
       setTimeout(() => listen(port + 1, triesLeft - 1), 150);
       return;
     }
-    console.error(`❌ Không mở được cổng ${port} (${err.code}). Hãy đặt PORT khác trong file .env, ví dụ PORT=8080`);
+    console.error(` Không mở được cổng ${port} (${err.code}). Hãy đặt PORT khác trong file .env, ví dụ PORT=8080`);
     process.exit(1);
   };
   server.once("listening", onListening);

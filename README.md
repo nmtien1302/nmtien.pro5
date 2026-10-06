@@ -37,9 +37,10 @@ Mở trình duyệt:
 
 ```
 my-profile-website/
-├── server.js              # Backend (Node thuần, không cần thư viện): file tĩnh + API thư + admin + lượt xem
+├── server.js              # Backend (Node thuần, không cần thư viện): file tĩnh + API thư + admin + lượt xem; lưu thư vào data/ hoặc Upstash
 ├── package.json
 ├── .env.example           # Mẫu cấu hình → copy thành .env
+├── render.yaml            # Cấu hình deploy một chạm lên Render (mục 5)
 ├── data/                  # Tự tạo: letters.json (thư), stats.json (lượt xem)
 └── public/                # Toàn bộ giao diện
     ├── index.html         # Trang profile
@@ -146,28 +147,51 @@ Muốn **đổi mật khẩu admin**: sửa `ADMIN_PASSWORD` trong `.env` rồi 
 
 ---
 
-## 5. Đưa web lên mạng
+## 5. Đưa web lên mạng (miễn phí)
 
-Vì có backend (Node.js) nên **không** host được trên GitHub Pages / Netlify tĩnh. Các lựa chọn dễ nhất:
+Web có backend Node.js (để nhận thư) nên **không** chạy được trên GitHub Pages / Netlify tĩnh. Cách miễn phí đơn giản nhất: **GitHub** (chứa code) + **Render** (chạy server) + **Upstash** (giữ thư không bị mất). Cả ba đều không cần thẻ tín dụng. Mất khoảng 20–30 phút lần đầu.
 
-### Render / Railway (miễn phí, đơn giản)
-1. Đẩy code lên GitHub (file `.env` và `data/` đã được bỏ qua trong `.gitignore`).
-2. Tạo **Web Service** từ repo: Build command để trống (hoặc `npm install`, không có gì để cài), Start command `npm start`.
-3. Thêm biến môi trường `ADMIN_PASSWORD` (nền tảng tự cấp `PORT`, server đọc được).
-4. ⚠️ Ổ đĩa gói miễn phí thường **bị reset khi deploy lại** → thư trong `data/letters.json` có thể mất. Render có "Persistent Disk" (trả phí) gắn vào thư mục `data/`; hoặc nhớ tải thư về trước khi deploy lại.
+> Vì sao cần Upstash? Gói miễn phí của Render có **ổ đĩa tạm**: mỗi lần server khởi động lại (deploy, hoặc sau 15 phút không ai truy cập) thì file `data/letters.json` bị xoá. Upstash là kho lưu trữ miễn phí bên ngoài, thư sẽ nằm ở đó thay vì trên ổ đĩa của Render. Nếu bạn chạy trên VPS riêng thì không cần.
 
-### VPS (Ubuntu) + pm2
-```bash
-npm install -g pm2
-pm2 start server.js --name profile
-pm2 save && pm2 startup
-```
-Rồi trỏ domain qua Nginx (reverse proxy về cổng 3000) và bật HTTPS bằng Certbot.
+### Bước 1 — Chuẩn bị trước khi đưa lên
+- Thay nội dung của bạn trong `public/js/config.js`, bỏ avatar / nhạc vào `public/assets/`.
+- Trong `config.js` nên để `letter.enabled: true` như cũ; `.env` **không** được đưa lên GitHub (đã nằm trong `.gitignore`).
+- Nhạc: file mp3 không quá ~20 MB mỗi bài để đẩy lên GitHub nhanh (giới hạn 100 MB/file).
 
-### Chỉ cần trang tĩnh (không cần gửi thư)
-Có thể upload nguyên thư mục `public/` lên bất kỳ host tĩnh nào (GitHub Pages, Netlify, Vercel…). Mọi thứ vẫn chạy, riêng nút gửi thư sẽ báo "không kết nối được server" và không hiện lượt xem (đặt `letter.enabled: false` và `showViews: false` trong `config.js` để ẩn luôn).
+### Bước 2 — Đưa code lên GitHub
+1. Tạo tài khoản tại <https://github.com> → **New repository** → đặt tên (VD `my-profile-website`), chọn **Private** nếu không muốn ai xem code (Render vẫn deploy được repo private) → **Create**.
+2. Cách dễ nhất không cần lệnh: cài **GitHub Desktop** (<https://desktop.github.com>) → **File → Add local repository** → chọn thư mục `my-profile-website` → **Publish repository**.
+   - Hoặc trên web: vào repo vừa tạo → **Add file → Upload files** → kéo thả *toàn bộ nội dung* trong thư mục `my-profile-website` (các thư mục `public`, `data`, file `server.js`, `package.json`, `render.yaml`…) → **Commit changes**.
 
----
+### Bước 3 — Tạo kho lưu thư trên Upstash
+1. Đăng ký tại <https://upstash.com> (đăng nhập bằng GitHub/Google được).
+2. **Create Database** → loại **Redis** → đặt tên, chọn region gần Việt Nam (VD *Singapore* / *ap-southeast-1*) → **Create**.
+3. Mở database vừa tạo, kéo xuống mục **REST API**: copy hai giá trị **UPSTASH_REDIS_REST_URL** và **UPSTASH_REDIS_REST_TOKEN** (giữ bí mật token).
+
+### Bước 4 — Deploy lên Render
+1. Đăng ký tại <https://render.com> (đăng nhập bằng GitHub) → **New → Blueprint** → chọn repo của bạn. Render đọc file `render.yaml` có sẵn trong dự án.
+2. Render hỏi 3 biến: nhập **ADMIN_PASSWORD** (mật khẩu trang admin), **UPSTASH_REDIS_REST_URL** và **UPSTASH_REDIS_REST_TOKEN** (lấy ở bước 3) → **Apply**.
+3. Đợi 1–2 phút. Khi trạng thái **Live**, bấm vào link dạng `https://my-profile-website.onrender.com` — đó là website của bạn. Trang admin: thêm `/admin` vào sau.
+4. Kiểm tra: mở `https://<tên-app>.onrender.com/api/health` phải thấy `"storage":"upstash"`. Nếu thấy `"file"` nghĩa là chưa điền đúng 2 biến Upstash (vào **Environment** của service để sửa, Render sẽ tự deploy lại).
+
+Nếu không muốn dùng Blueprint: **New → Web Service** → chọn repo → Runtime *Node*, Build command `npm install`, Start command `node server.js`, plan *Free* → thêm các biến môi trường ở tab **Environment** như trên.
+
+### Sau khi lên mạng
+- **Cập nhật web**: sửa file trên máy → đẩy lên GitHub (GitHub Desktop: *Commit* → *Push*) → Render tự deploy lại sau ~1 phút.
+- **Tên miền riêng** (VD `ten-ban.com`): mua tên miền ở bất kỳ nhà cung cấp nào → Render → service → **Settings → Custom Domains → Add** → làm theo hướng dẫn trỏ DNS (CNAME). HTTPS tự động, miễn phí.
+- **Web "ngủ" khi vắng khách**: gói Free tắt server sau 15 phút không có người xem, người tiếp theo phải đợi khoảng 30–60 giây lần đầu. Muốn web luôn sẵn sàng: dùng dịch vụ ping miễn phí như <https://cron-job.org> gọi `https://<tên-app>.onrender.com/api/health` mỗi 10 phút, hoặc nâng lên gói trả phí của Render.
+- **Sao lưu thư**: thư nằm trên Upstash; muốn tải về thì đăng nhập `/admin` xem, hoặc dùng **Data Browser** trong Upstash (key `profile:letters`).
+
+### Lựa chọn khác
+- **Railway** (<https://railway.com>): tương tự Render, có dùng thử rồi trả phí nhỏ (~5 USD/tháng), không ngủ. Vẫn nên dùng Upstash hoặc gắn **Volume** vào thư mục `/app/data`.
+- **VPS** (Vultr, DigitalOcean, Hetzner, hoặc nhà cung cấp Việt Nam ~100k/tháng): toàn quyền, không ngủ, thư lưu ngay trên máy chủ (không cần Upstash):
+  ```bash
+  npm install -g pm2
+  pm2 start server.js --name profile
+  pm2 save && pm2 startup
+  ```
+  rồi trỏ tên miền qua Nginx (reverse proxy về cổng 3000) và bật HTTPS bằng Certbot.
+- **Chỉ cần trang tĩnh** (bỏ chức năng gửi thư): đặt `letter.enabled: false` và `showViews: false` trong `config.js`, rồi upload nguyên thư mục `public/` lên GitHub Pages / Netlify / Vercel.
 
 ## 6. Câu hỏi thường gặp
 
@@ -181,4 +205,4 @@ Có thể upload nguyên thư mục `public/` lên bất kỳ host tĩnh nào (G
 
 **Muốn đổi đường dẫn trang admin?** Đổi tên `public/admin.html` và route `app.get("/admin", …)` trong `server.js`.
 
-**Thư lưu ở đâu?** `data/letters.json` — có thể mở bằng bất kỳ trình soạn thảo nào để sao lưu.
+**Thư lưu ở đâu?** Chạy trên máy / VPS: `data/letters.json` (mở bằng trình soạn thảo bất kỳ để sao lưu). Chạy trên Render với Upstash: trong database Upstash, key `profile:letters`.

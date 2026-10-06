@@ -79,9 +79,9 @@
   function renderProfile() {
     document.title = cfg.pageTitle || cfg.name || "Profile";
     const avatar = $("#avatar");
-    avatar.src = cfg.avatar || "assets/avatar.svg";
+    avatar.src = cfg.avatar || "assets/avatar.png";
     avatar.alt = cfg.name || "Avatar";
-    avatar.onerror = () => { avatar.onerror = null; avatar.src = "assets/avatar.svg"; };
+    avatar.onerror = () => { avatar.onerror = null; avatar.src = "assets/avatar.png"; };
 
     $("#name").textContent = cfg.name || "";
     $("#verified").hidden = !cfg.verified;
@@ -235,7 +235,7 @@
       wantsPlay = autoplay;
       audio.src = song.src;
       audio.load();
-      el.cover.src = song.cover || cfg.avatar || "assets/avatar.svg";
+      el.cover.src = song.cover || cfg.avatar || "assets/avatar.png";
       el.title.textContent = song.title || "Không rõ tên bài";
       el.artist.textContent = song.artist || "Không rõ tác giả";
       el.title.title = `${el.title.textContent} - ${el.artist.textContent}`;
@@ -404,8 +404,8 @@
     const sendIcon = window.SiteTheme.makeMorphIcon($("#sendIcon"), "send");
     const maxLen = Number(L.maxLength) || 1000;
 
-    $("#letterBtnText").textContent = L.buttonText || "Gửi thư cho admin";
-    $("#letterTitle").textContent = L.title || "💌 Gửi thư cho admin";
+    $("#letterBtnText").textContent = L.buttonText || "Gửi thư cho admin...";
+    $("#letterTitle").textContent = L.title || "Gửi thư cho admin...";
     $("#letterDesc").textContent = L.description || "";
     $("#charMax").textContent = maxLen;
     msg.maxLength = maxLen;
@@ -441,7 +441,7 @@
       e.preventDefault();
       const message = msg.value.trim();
       const name = nameInput.value.trim();
-      if (!message) { toast("Bạn chưa viết gì cả...", "error"); msg.focus(); return; }
+      if (!message) { toast("Bạn chưa viết gì cả", "error"); msg.focus(); return; }
       if (!anon.checked && !name) { toast("Hãy nhập tên hoặc bật chế độ ẩn danh", "error"); nameInput.focus(); return; }
 
       send.disabled = true;
