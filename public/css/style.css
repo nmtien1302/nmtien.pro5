@@ -166,7 +166,7 @@ body.has-bg .bg .photo { opacity: 0.35; }
 }
 .card.visible { opacity: 1; transform: none; }
 
-/* trang giấy */
+/* trang giấy (mặt sách .face: lề nằm ở .face-body, bố cục khe trái / phải / đơn ở css/book.css) */
 .sheet {
   position: relative;
   background: var(--paper);
@@ -560,6 +560,126 @@ body.has-bg .bg .photo { opacity: 0.35; }
 .views-pill .icon { width: 17px; height: 17px; }
 
 /* ============================================================
+ *  THANH "ĐANG PHÁT" NHỎ Ở CHÂN TRANG (main.js)
+ *  Chỉ hiện khi đã lật qua trang nhạc; bấm tên bài để lật về trang nhạc.
+ * ============================================================ */
+.mini-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: min(330px, calc(100vw - 40px)); /* chân trang co theo nội dung → giới hạn theo màn hình, không theo % */
+  padding: 3px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--on-leather);
+  background: color-mix(in srgb, var(--leather) 60%, transparent);
+  box-shadow: inset 0 0 0 2px transparent, inset 0 0 0 3px var(--gold-faint), 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: mini-in 0.35s ease both;
+}
+@keyframes mini-in { from { opacity: 0; transform: translateY(6px) scale(0.96); } }
+.mini-play {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  background: var(--accent);
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.mini-play .icon { width: 15px; height: 15px; stroke-width: 2.2; }
+.mini-play:hover { background: color-mix(in srgb, var(--accent) 85%, var(--ink)); }
+.mini-play:active { transform: scale(0.92); }
+.mini-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 7px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-size: 13.5px;
+  line-height: 1.25;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+.mini-title:hover { background: color-mix(in srgb, var(--gold) 22%, transparent); }
+.mini-play:focus-visible, .mini-title:focus-visible { outline: 2px solid var(--on-leather); outline-offset: 2px; }
+/* tên bài: dài quá thì chạy chữ khi đang phát, dừng thì "…" */
+.mini-marquee { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mini-text b { font-family: var(--font-display); font-weight: 700; }
+.mini-text .mini-artist { font-style: italic; opacity: 0.8; }
+.mini-player.is-playing .mini-marquee.is-overflow {
+  text-overflow: clip;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+}
+.mini-player.is-playing .mini-marquee.is-overflow .mini-text {
+  display: inline-block;
+  padding-left: 6px;
+  animation: mini-marquee var(--mq-dur, 10s) ease-in-out infinite alternate;
+}
+@keyframes mini-marquee {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(var(--mq-shift, 0px)); }
+}
+/* 3 vạch nhạc nhảy khi đang phát */
+.mini-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; flex-shrink: 0; }
+.mini-eq span { width: 2.5px; height: 100%; border-radius: 2px; background: var(--gold); transform: scaleY(0.35); transform-origin: bottom; }
+.mini-player.is-playing .mini-eq span { animation: eq 0.9s ease-in-out infinite; }
+.mini-player.is-playing .mini-eq span:nth-child(2) { animation-delay: 0.2s; }
+.mini-player.is-playing .mini-eq span:nth-child(3) { animation-delay: 0.45s; }
+@media (max-width: 480px) {
+  .mini-title { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-player { animation: none; }
+  .mini-player .mini-eq span { animation: none !important; transform: scaleY(0.7); }
+  .mini-player .mini-marquee.is-overflow { text-overflow: ellipsis; -webkit-mask-image: none; mask-image: none; }
+  .mini-player .mini-marquee.is-overflow .mini-text { display: inline; padding-left: 0; animation: none !important; }
+}
+
+/* ============================================================
+ *  NÚT "✎ CHỈNH SỬA" TRÊN TRANG SÁCH (main.js)
+ *  Chỉ hiện khi máy này đang đăng nhập /admin; nằm trên đường khung vàng ở mép trên trang,
+ *  giữa trang (xa vùng cầm lật ở mép ngoài / góc).
+ * ============================================================ */
+.book-stage > .sheet > .edit-chip {
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 11px 3px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--paper), 0 2px 6px rgba(0, 0, 0, 0.18);
+  opacity: 0.82;
+  transition: opacity 0.2s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.book-stage > .sheet > .edit-chip:hover,
+.book-stage > .sheet > .edit-chip:focus-visible { opacity: 1; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.book-stage > .sheet > .edit-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ============================================================
  *  MODAL (popup chào mừng + gửi thư)
  * ============================================================ */
 .modal-overlay {
@@ -706,15 +826,13 @@ textarea.field { resize: vertical; min-height: 130px; line-height: 1.6; }
  *  CHẾ ĐỘ MÁY TÍNH (≥ 900px): hai trang sách mở
  * ============================================================ */
 @media (min-width: 900px) {
-  .page { padding: 56px 32px 40px; }
-  .card { max-width: 1040px; flex-direction: row; gap: 0; padding: 18px; }
-  .sheet { flex: 1 1 0; min-width: 0; padding: 44px 40px 36px; }
-  .sheet.col-profile { border-radius: 6px 0 0 6px; box-shadow: inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent), inset -24px 0 36px -20px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.3); }
-  .sheet.col-music { border-radius: 0 6px 6px 0; text-align: left; box-shadow: inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent), inset 24px 0 36px -20px rgba(0, 0, 0, 0.4), 4px 4px 0 var(--paper-2), 0 10px 24px rgba(0, 0, 0, 0.3); }
-  .sheet.col-music .frame { inset: 9px 9px 9px 14px; }
-  .sheet.col-profile .frame { inset: 9px 14px 9px 9px; }
-  .col-profile { display: flex; flex-direction: column; justify-content: center; }
-  .col-music { display: flex; flex-direction: column; justify-content: center; }
+  .page { padding: 32px 32px 24px; }
+  /* sân khấu sách (2 trang) ở trên, thanh lật trang ở dưới; bóng gáy / bo góc từng trang nằm ở
+     .slot-left / .slot-right (css/book.css) để trang nào nằm bên nào cũng đúng */
+  .card { max-width: 1040px; gap: 14px; padding: 18px; }
+  .sheet.col-music { text-align: left; }
+  /* giữ nguyên cách xếp cột cũ của 2 trang đầu */
+  .col-profile .face-inner, .col-music .face-inner { display: flex; flex-direction: column; }
   .ribbon { right: 34px; min-height: 132px; }
   .avatar-wrap { width: 176px; height: 176px; margin-bottom: 22px; }
   .name { font-size: 50px; }
@@ -724,7 +842,7 @@ textarea.field { resize: vertical; min-height: 130px; line-height: 1.6; }
   .player { padding: 16px 16px 12px; }
   .playlist.open { max-height: 420px; }
   .letter-btn { margin-top: 18px; }
-  .footer { margin-top: 34px; }
+  .footer { margin-top: 18px; }
   .theme-toggle { top: 24px; right: 24px; }
 }
 

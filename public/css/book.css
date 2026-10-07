@@ -1,0 +1,408 @@
+/* ============================================================
+ *  book.css — cuốn sách lật trang (đi cùng js/book.js)
+ *  Khe trang trái / phải / đơn, giải phẫu mặt giấy (.face-body cuộn bên trong),
+ *  lớp bóng khi lật, góc gập "Lật trang" và thanh điều hướng dưới sách.
+ * ============================================================ */
+
+.book {
+  /* bóng & ánh giấy khi lật — chế độ sáng (giấy kem) */
+  --flip-shadow: rgba(0, 0, 0, 0.34);       /* bóng trên trang vừa lộ ra, sát nếp gấp */
+  --flip-crease: rgba(0, 0, 0, 0.2);        /* vệt tối ở nếp gấp của lá giấy */
+  --flip-hi: color-mix(in srgb, var(--on-accent) 34%, transparent);     /* dải sáng chỗ giấy cong */
+  --flip-sheen: color-mix(in srgb, var(--on-accent) 20%, transparent);  /* ánh giấy về phía mép ngoài */
+  --flip-cast: rgba(0, 0, 0, 0.3);          /* bóng mép lá giấy hắt xuống trang dưới */
+  --face-gap: 12px;                          /* khung cuộn nằm lọt trong khung kẻ vàng */
+}
+/* chế độ tối (giấy than): bóng phải đậm hơn, ánh sáng dịu hơn */
+:root[data-theme="dark"] .book {
+  --flip-shadow: rgba(0, 0, 0, 0.58);
+  --flip-crease: rgba(0, 0, 0, 0.42);
+  --flip-hi: color-mix(in srgb, var(--on-accent) 10%, transparent);
+  --flip-sheen: color-mix(in srgb, var(--on-accent) 8%, transparent);
+  --flip-cast: rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================
+ *  SÂN KHẤU: chiều cao cố định, các mặt giấy đặt tuyệt đối vào khe
+ * ============================================================ */
+.book-stage {
+  position: relative;
+  isolation: isolate;          /* thứ tự lớp khi lật chỉ có hiệu lực bên trong sách */
+  touch-action: pan-y pinch-zoom;
+}
+.book-stage:focus { outline: none; }
+
+/* chưa có book.js (hoặc lỗi script): xếp các trang chồng dọc như cũ */
+.book:not(.is-ready) .book-stage { display: flex; flex-direction: column; gap: 14px; }
+
+.book.is-ready[data-mode="single"] .book-stage { height: clamp(460px, calc(100vh - 235px), 760px); }
+@supports (height: 100svh) {
+  .book.is-ready[data-mode="single"] .book-stage { height: clamp(460px, calc(100svh - 235px), 760px); }
+}
+.book.is-ready[data-mode="spread"] .book-stage { height: clamp(580px, calc(100vh - 230px), 780px); }
+
+.book.is-ready .book-stage > .face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;           /* ruy băng thò ra ngoài mép trên */
+  visibility: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+.book.is-ready .book-stage > .face.slot-left { left: 0; width: 50%; }
+.book.is-ready .book-stage > .face.slot-right { left: 50%; width: 50%; }
+.book.is-ready .book-stage > .face.slot-single { left: 0; width: 100%; }
+
+/* lớp khi nghỉ / khi lật: dưới (1) → bóng trang dưới (2) → mặt trước (3) → bóng mép (4) → mặt sau (5) → ánh nếp cong (6) → góc gập (7) */
+.book.is-ready .book-stage > .face.is-active { visibility: visible; z-index: 1; }
+.book.is-ready .book-stage > .face.is-under { visibility: visible; z-index: 1; }
+.book.is-ready .book-stage > .face.is-front { visibility: visible; z-index: 3; }
+.book.is-ready .book-stage > .face.is-back { visibility: visible; z-index: 5; transform-origin: 0 0; }
+.book.is-ready .book-stage > .face.is-fade { visibility: visible; z-index: 6; }
+
+/* ============================================================
+ *  GIẢI PHẪU MẶT GIẤY: .face › .frame + .ribbon + .face-body (cuộn) › .face-inner
+ * ============================================================ */
+.sheet.face { padding: 0; }
+.face-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 2 * var(--face-gap, 12px));
+  margin: var(--face-gap, 12px);
+  padding: 22px 14px 14px;     /* = lề cũ của .sheet (34 26 26) trừ khoảng hở */
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y pinch-zoom;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-soft) transparent;
+}
+.face-body::-webkit-scrollbar { width: 8px; }
+.face-body::-webkit-scrollbar-track { background: transparent; }
+.face-body::-webkit-scrollbar-thumb {
+  background: var(--gold-soft);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+.face-body::-webkit-scrollbar-thumb:hover { background-color: var(--gold); }
+/* nội dung ngắn: nằm giữa trang; dài: cuộn từ trên xuống */
+.face-inner {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  margin: auto 0;
+  display: flow-root;          /* ôm trọn ảnh float của trang tự soạn */
+}
+/* khung cuộn bên trong trang (danh sách nhạc) cũng chỉ cuộn dọc, để vuốt ngang lật trang */
+.book-stage .face .playlist { touch-action: pan-y pinch-zoom; }
+
+/* ----- khe trang bên TRÁI gáy (chế độ 2 trang) ----- */
+.sheet.slot-left {
+  border-radius: 6px 0 0 6px;
+  box-shadow:
+    inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent),
+    inset -24px 0 36px -20px rgba(0, 0, 0, 0.35),
+    0 10px 24px rgba(0, 0, 0, 0.3);
+}
+/* đã lật qua vài trang: thấy mép tập giấy bên trái */
+.book.has-prev .sheet.slot-left {
+  box-shadow:
+    inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent),
+    inset -24px 0 36px -20px rgba(0, 0, 0, 0.35),
+    -4px 4px 0 var(--paper-2),
+    0 10px 24px rgba(0, 0, 0, 0.3);
+}
+.sheet.slot-left .frame { inset: 9px 14px 9px 9px; }
+.sheet.slot-left > .face-body { margin-right: 16px; padding: 32px 24px 24px 28px; } /* = 44 40 36 40 cũ */
+
+/* ----- khe trang bên PHẢI gáy ----- */
+.sheet.slot-right {
+  border-radius: 0 6px 6px 0;
+  box-shadow:
+    inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent),
+    inset 24px 0 36px -20px rgba(0, 0, 0, 0.4),
+    4px 4px 0 var(--paper-2),
+    0 10px 24px rgba(0, 0, 0, 0.3);
+}
+.sheet.slot-right .frame { inset: 9px 9px 9px 14px; }
+.sheet.slot-right > .face-body { margin-left: 16px; padding: 32px 28px 24px 24px; }
+
+/* ----- chế độ 1 trang (điện thoại): giống tờ giấy cũ, có mép tập giấy bên phải ----- */
+.sheet.slot-single {
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent),
+    2px 2px 0 color-mix(in srgb, var(--paper-2) 85%, var(--paper)),
+    4px 4px 0 var(--paper-2),
+    0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 480px) {
+  .face-body { padding: 18px 6px 10px; }  /* = 30 18 22 cũ */
+}
+
+/* đang lật: mặt lộ ra bên dưới tạm bỏ bóng NGOÀI mép (mặt trước vẫn giữ bóng đó) để bóng không đậm gấp đôi */
+.book.book-pathclip .book-stage > .sheet.face.is-under.slot-left {
+  box-shadow: inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent), inset -24px 0 36px -20px rgba(0, 0, 0, 0.35);
+}
+.book.book-pathclip .book-stage > .sheet.face.is-under.slot-right {
+  box-shadow: inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent), inset 24px 0 36px -20px rgba(0, 0, 0, 0.4);
+}
+.book.book-pathclip .book-stage > .sheet.face.is-under.slot-single {
+  box-shadow: inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+
+/* ============================================================
+ *  LỚP PHỦ KHI LẬT (book.js chỉ đổi transform / clip-path / opacity)
+ * ============================================================ */
+.book-fx,
+.book-blank {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  visibility: hidden;
+  transform-origin: 0 0;
+}
+.book[data-mode="spread"] .book-fx,
+.book[data-mode="spread"] .book-blank { width: 50%; }
+.book-fx.is-on,
+.book-blank.is-on { visibility: visible; }
+
+.book-fx-under { z-index: 2; overflow: hidden; }
+.book-fx-cast { z-index: 4; border-radius: 4px; box-shadow: 0 0 22px 2px var(--flip-cast); }
+.book-fx-flap { z-index: 6; overflow: hidden; }
+.book-fx-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 500%;
+  transform-origin: 0 0;
+}
+.book-fx-under .book-fx-strip {
+  background: linear-gradient(to right,
+    var(--flip-shadow) 0%,
+    color-mix(in srgb, var(--flip-shadow) 45%, transparent) 32%,
+    transparent 100%);
+}
+.book-fx-flap .book-fx-strip {
+  background: linear-gradient(to right,
+    var(--flip-crease) 0%,
+    color-mix(in srgb, var(--flip-crease) 35%, transparent) 5%,
+    var(--flip-hi) 13%,
+    transparent 30%,
+    color-mix(in srgb, var(--flip-crease) 22%, transparent) 52%,
+    transparent 72%,
+    var(--flip-sheen) 100%);
+}
+
+/* mặt sau trắng của tờ giấy (chế độ 1 trang) */
+.book-blank {
+  z-index: 5;
+  background: var(--paper);
+  border-radius: 4px;
+  box-shadow: inset 0 0 50px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.book-blank::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--paper-grain);
+}
+
+/* ============================================================
+ *  GÓC GẬP "LẬT TRANG" (dưới góc ngoài) — rê chuột thì giấy hé lên
+ * ============================================================ */
+.book-corner {
+  position: absolute;
+  bottom: 0;
+  z-index: 7;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.book-corner.is-next { right: 0; }
+.book-corner.is-prev { left: 0; }
+.book.has-next .book-corner.is-next,
+.book.has-prev .book-corner.is-prev { opacity: 1; visibility: visible; }
+.book.is-flipping .book-corner.is-next,
+.book.is-flipping .book-corner.is-prev { opacity: 0; visibility: hidden; transition-duration: 0.1s; }
+
+/* phần trang bên dưới lộ ra ở góc */
+.book-corner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--paper-2) 70%, var(--paper));
+  transition: opacity 0.2s ease;
+}
+.book-corner.is-next::before { clip-path: polygon(100% 0, 100% 100%, 0 100%); border-bottom-right-radius: 6px; }
+.book-corner.is-prev::before { clip-path: polygon(0 0, 100% 100%, 0 100%); border-bottom-left-radius: 6px; }
+.book[data-mode="single"] .book-corner.is-next::before { border-bottom-right-radius: 4px; }
+.book[data-mode="single"] .book-corner.is-prev::before { border-bottom-left-radius: 4px; }
+
+/* mẩu giấy gập lên (mặt sau của góc trang) */
+.book-corner-fold {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(1px 1px 1.5px rgba(0, 0, 0, 0.3));
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.book-corner-fold::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.book-corner.is-next .book-corner-fold::before {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: linear-gradient(to top left,
+    color-mix(in srgb, var(--paper) 80%, var(--ink)) 50%,
+    var(--paper) 78%,
+    color-mix(in srgb, var(--paper) 86%, var(--on-accent)) 100%);
+}
+.book-corner.is-prev .book-corner-fold::before {
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  background: linear-gradient(to top right,
+    color-mix(in srgb, var(--paper) 80%, var(--ink)) 50%,
+    var(--paper) 78%,
+    color-mix(in srgb, var(--paper) 86%, var(--on-accent)) 100%);
+}
+.book-corner:hover .book-corner-fold { transform: scale(1.12); }
+.book-corner.is-next:hover .book-corner-fold { transform-origin: 100% 100%; }
+.book-corner.is-prev:hover .book-corner-fold { transform-origin: 0 100%; }
+/* khi trang đang hé thật thì ẩn góc gập vẽ sẵn */
+.book.peel-next .book-corner.is-next::before,
+.book.peel-next .book-corner.is-next .book-corner-fold,
+.book.peel-prev .book-corner.is-prev::before,
+.book.peel-prev .book-corner.is-prev .book-corner-fold { opacity: 0; }
+
+/* nhãn nhỏ "Lật trang" */
+.book-corner-label {
+  position: absolute;
+  bottom: 14px;
+  white-space: nowrap;
+  padding: 4px 10px 5px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--gold-faint), 0 6px 14px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.book-corner.is-next .book-corner-label { right: 80px; }
+.book-corner.is-prev .book-corner-label { left: 80px; }
+.book-corner:hover .book-corner-label,
+.book.peel-next .book-corner.is-next .book-corner-label,
+.book.peel-prev .book-corner.is-prev .book-corner-label { opacity: 1; transform: none; }
+.book-corner.is-next:hover .book-corner-label { right: 34px; }
+.book-corner.is-prev:hover .book-corner-label { left: 34px; }
+.book.peel-next .book-corner.is-next .book-corner-label { right: 80px; }
+.book.peel-prev .book-corner.is-prev .book-corner-label { left: 80px; }
+
+@media (hover: none) {
+  .book-corner { width: 32px; height: 32px; }
+}
+
+/* con trỏ ở vùng mép giấy cầm được */
+.book-stage.is-grab,
+.book-stage.is-grab .face,
+.book-stage.is-grab .face * { cursor: grab; }
+.book.is-dragging .book-stage,
+.book.is-dragging .book-stage * {
+  cursor: grabbing !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ============================================================
+ *  THANH LẬT TRANG dưới sách (nằm trên bìa da)
+ * ============================================================ */
+.book-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+  color: var(--on-leather);
+  font-family: var(--font-display);
+}
+.book-nav:empty { display: none; }
+.book-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--leather) 35%, transparent);
+  color: var(--on-leather);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 2px transparent, inset 0 0 0 3px var(--gold-faint), 0 3px 8px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.12s ease;
+}
+.book-nav-btn .arw { font-size: 20px; line-height: 0.6; margin-top: -2px; }
+.book-nav-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--gold) 26%, transparent); }
+.book-nav-btn:active:not(:disabled) { transform: translateY(1px); }
+.book-nav-btn:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+.book-nav-btn:focus-visible { outline: 2px solid var(--on-leather); outline-offset: 3px; }
+.book-nav-ind {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-style: italic;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+.book-nav-ind::before,
+.book-nav-ind::after { content: "✦"; color: var(--gold); font-style: normal; font-size: 10px; }
+
+@media (max-width: 480px) {
+  .book-nav { gap: 6px; }
+  .book-nav-btn { padding: 6px 11px 7px; font-size: 13px; gap: 5px; }
+  .book-nav-ind { font-size: 14px; gap: 7px; }
+}
+@media (max-width: 359px) {
+  .book-nav-btn .lbl { display: none; }   /* màn quá hẹp: chỉ còn mũi tên */
+  .book-nav-btn { padding: 6px 14px 7px; }
+}
+
+/* chỉ dành cho trình đọc màn hình */
+.book-sr {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

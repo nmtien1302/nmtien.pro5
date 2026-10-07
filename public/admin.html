@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#371e13">
-  <title>Hộp thư admin</title>
+  <title>Trang quản trị</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/admin.css">
   <script src="js/config.js"></script>
   <script src="js/icon-paths.js"></script>
   <script src="js/theme.js"></script>
 </head>
-<body>
+<body class="admin-body">
   <div class="bg" aria-hidden="true">
     <div class="lamp"></div>
     <div class="grain"></div>
@@ -27,16 +28,22 @@
     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>
   </button>
 
-  <main class="admin">
+  <main class="admin" id="adminMain">
 
     <!-- ===== ĐĂNG NHẬP ===== -->
-    <section class="panel" id="loginView">
+    <section class="panel" id="loginView" hidden>
       <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
       <div class="lock-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-lock"></use></svg></div>
       <h1>Khu vực admin</h1>
-      <p class="muted">Nhập mật khẩu để đọc thư mọi người gửi cho bạn.</p>
+      <p class="muted">Nhập mật khẩu để đọc thư và chỉnh sửa trang profile của bạn.</p>
+      <p class="notice" id="loginNotice" role="status" hidden></p>
       <form id="loginForm" novalidate>
-        <input class="field" type="password" id="password" placeholder="Mật khẩu admin" autocomplete="current-password" required autofocus>
+        <label class="sr-only" for="password">Mật khẩu admin</label>
+        <input class="field" type="password" id="password" placeholder="Mật khẩu admin" autocomplete="current-password" required>
+        <label class="check-row" for="remember">
+          <input type="checkbox" id="remember">
+          <span>Ghi nhớ đăng nhập trên máy này</span>
+        </label>
         <button class="btn btn-primary wide" type="submit" id="loginBtn">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-login"></use></svg> Đăng nhập
         </button>
@@ -45,35 +52,335 @@
       <a class="back" href="./"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-arrow-left"></use></svg> Về trang profile</a>
     </section>
 
-    <!-- ===== HỘP THƯ ===== -->
-    <section class="panel wide" id="inboxView" hidden>
-      <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
-      <header class="inbox-head">
-        <div>
-          <h1>Hộp thư 💌</h1>
-          <p class="muted" id="stats">—</p>
+    <!-- ===== BÀN LÀM VIỆC (sau khi đăng nhập) ===== -->
+    <div class="dash" id="dashView" hidden>
+      <header class="dash-head">
+        <div class="dash-title">
+          <span class="dash-seal" aria-hidden="true">✦</span>
+          <div>
+            <h1>Bàn soạn sách</h1>
+            <p class="dash-sub" id="sessionInfo">Đang kiểm tra phiên đăng nhập…</p>
+          </div>
         </div>
-        <div class="head-actions">
-          <button class="btn btn-ghost btn-sm" id="refreshBtn" type="button" title="Tải lại danh sách"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-refresh"></use></svg> Làm mới</button>
-          <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-logout"></use></svg> Đăng xuất</button>
+        <div class="dash-actions">
+          <a class="btn btn-ghost btn-sm" href="./" target="_blank" rel="noopener">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-eye"></use></svg> Xem trang
+          </a>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-logout"></use></svg> Đăng xuất
+          </button>
         </div>
       </header>
 
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-filter="all" role="tab">Tất cả <span class="count" id="countAll">0</span></button>
-        <button class="tab" data-filter="unread" role="tab">Chưa đọc <span class="count" id="countUnread">0</span></button>
-        <button class="tab" data-filter="named" role="tab">Có tên</button>
-        <button class="tab" data-filter="anonymous" role="tab">Ẩn danh</button>
-      </div>
+      <nav class="dash-tabs" id="dashTabs" role="tablist" aria-label="Các mục quản trị">
+        <a class="dash-tab" role="tab" id="tabbtn-thu" href="#thu" aria-controls="tab-thu" data-tab="thu">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-mail"></use></svg>
+          <span class="dash-tab-label">Hộp thư</span>
+          <span class="dash-tab-count" id="navUnread" hidden></span>
+        </a>
+        <a class="dash-tab" role="tab" id="tabbtn-ho-so" href="#ho-so" aria-controls="tab-ho-so" data-tab="ho-so">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-star"></use></svg>
+          <span class="dash-tab-label">Hồ sơ</span>
+          <span class="dirty-dot" aria-hidden="true"></span>
+        </a>
+        <a class="dash-tab" role="tab" id="tabbtn-am-nhac" href="#am-nhac" aria-controls="tab-am-nhac" data-tab="am-nhac">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-music"></use></svg>
+          <span class="dash-tab-label">Âm nhạc</span>
+          <span class="dirty-dot" aria-hidden="true"></span>
+        </a>
+        <a class="dash-tab" role="tab" id="tabbtn-trang-sach" href="#trang-sach" aria-controls="tab-trang-sach" data-tab="trang-sach">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-sparkles"></use></svg>
+          <span class="dash-tab-label">Trang sách</span>
+          <span class="dirty-dot" aria-hidden="true"></span>
+        </a>
+        <a class="dash-tab" role="tab" id="tabbtn-kho" href="#kho" aria-controls="tab-kho" data-tab="kho">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-headphones"></use></svg>
+          <span class="dash-tab-label">Kho tệp</span>
+        </a>
+      </nav>
 
-      <div class="letters" id="letters"></div>
-      <p class="empty muted" id="empty" hidden>Chưa có thư nào 📭</p>
-      <a class="back" href="./"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-arrow-left"></use></svg> Về trang profile</a>
-    </section>
+      <!-- ===== HỘP THƯ ===== -->
+      <section class="panel wide tab-panel" id="tab-thu" role="tabpanel" aria-labelledby="tabbtn-thu" tabindex="-1" hidden>
+        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+        <header class="tab-head">
+          <div>
+            <h2>Hộp thư 💌</h2>
+            <p class="muted" id="stats">—</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost btn-sm" id="refreshBtn" type="button" title="Tải lại danh sách"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-refresh"></use></svg> Làm mới</button>
+          </div>
+        </header>
+
+        <div class="tabs" id="letterFilters" role="group" aria-label="Lọc thư">
+          <button class="tab active" data-filter="all" type="button" aria-pressed="true">Tất cả <span class="count" id="countAll">0</span></button>
+          <button class="tab" data-filter="unread" type="button" aria-pressed="false">Chưa đọc <span class="count" id="countUnread">0</span></button>
+          <button class="tab" data-filter="named" type="button" aria-pressed="false">Có tên</button>
+          <button class="tab" data-filter="anonymous" type="button" aria-pressed="false">Ẩn danh</button>
+        </div>
+
+        <div class="letters" id="letters"></div>
+        <p class="empty muted" id="empty" hidden>Chưa có thư nào 📭</p>
+      </section>
+
+      <!-- ===== HỒ SƠ ===== -->
+      <section class="panel wide tab-panel" id="tab-ho-so" role="tabpanel" aria-labelledby="tabbtn-ho-so" tabindex="-1" hidden>
+        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+        <header class="tab-head">
+          <div>
+            <h2>Hồ sơ</h2>
+            <p class="muted">Ảnh đại diện, tên, lời giới thiệu ở trang 1 — và bạn linh vật nhỏ trên sách.</p>
+          </div>
+        </header>
+        <div class="tab-error" data-load-error hidden></div>
+
+        <div class="section-card" id="profileSection">
+          <div class="section-head">
+            <h3>Trang 1 · Thông tin cá nhân</h3>
+            <button class="btn btn-ghost btn-sm" type="button" id="profileReset">Khôi phục mặc định</button>
+          </div>
+          <div class="profile-grid">
+            <div class="avatar-editor">
+              <div class="avatar-drop" id="avatarDrop" role="button" tabindex="0" aria-describedby="avatarHint" aria-label="Đổi ảnh đại diện">
+                <img id="avatarPreview" alt="Ảnh đại diện hiện tại">
+                <span class="avatar-empty" id="avatarEmpty" hidden>Chưa có ảnh</span>
+                <span class="avatar-over" aria-hidden="true">Thả ảnh vào đây</span>
+              </div>
+              <div class="upload-progress" id="avatarProgress" hidden>
+                <div class="bar"><span></span></div>
+                <span class="pct">0%</span>
+                <button class="icon-btn small" type="button" data-cancel aria-label="Huỷ tải lên"></button>
+              </div>
+              <div class="avatar-actions">
+                <button class="btn btn-primary btn-sm" type="button" id="avatarPick">Chọn ảnh</button>
+                <button class="btn btn-ghost btn-sm" type="button" id="avatarDefault" hidden>Ảnh mặc định</button>
+              </div>
+              <p class="hint" id="avatarHint">Từ máy tính hoặc điện thoại. Có thể kéo thả ảnh vào khung, hoặc dán ảnh (Ctrl + V).</p>
+              <input type="file" id="avatarFile" accept="image/*" hidden>
+            </div>
+
+            <div class="profile-fields">
+              <div class="form-row">
+                <label class="lbl" for="pfName">Tên hiển thị</label>
+                <input class="field" id="pfName" maxlength="60" autocomplete="off">
+              </div>
+              <div class="form-row">
+                <label class="lbl" for="pfUsername">Tên ở chân trang <span class="lbl-note">(username)</span></label>
+                <input class="field" id="pfUsername" maxlength="60" autocomplete="off" placeholder="@ten_cua_ban">
+              </div>
+              <div class="form-row">
+                <label class="lbl" for="pfBio">Lời giới thiệu</label>
+                <textarea class="field" id="pfBio" maxlength="500" rows="3" aria-describedby="pfBioCount"></textarea>
+                <div class="counter" id="pfBioCount" aria-live="polite">0/500</div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-row">
+                  <label class="lbl" for="pfRibbon">Chữ trên ruy băng</label>
+                  <input class="field" id="pfRibbon" maxlength="24" autocomplete="off" aria-describedby="pfRibbonCount" placeholder="Để trống để ẩn">
+                  <div class="counter" id="pfRibbonCount">0/24</div>
+                </div>
+                <label class="switch-row form-row" for="pfVerified">
+                  <span>Tick xác minh cạnh tên</span>
+                  <span class="switch"><input type="checkbox" id="pfVerified"><span class="slider"></span></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card" id="mascotSection">
+          <div class="section-head">
+            <h3>Linh vật</h3>
+            <button class="btn btn-ghost btn-sm" type="button" id="mascotReset">Khôi phục mặc định</button>
+          </div>
+          <label class="switch-row" for="msEnabled">
+            <span>Hiện linh vật trên trang</span>
+            <span class="switch"><input type="checkbox" id="msEnabled"><span class="slider"></span></span>
+          </label>
+          <div class="mascot-fields" id="mascotFields">
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label class="lbl" for="msName">Tên linh vật</label>
+                <input class="field" id="msName" maxlength="30" autocomplete="off">
+              </div>
+              <div class="form-row">
+                <label class="lbl" for="msColor">Màu lông</label>
+                <div class="color-row">
+                  <input type="color" id="msColor" value="#d97757">
+                  <code class="color-code" id="msColorCode">#d97757</code>
+                  <span class="mascot-dot" id="msDot" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="lbl" for="msMessages">Lời thoại <span class="lbl-note">(mỗi dòng một câu, tối đa 30 câu, mỗi câu ≤ 120 ký tự)</span></label>
+              <textarea class="field" id="msMessages" rows="5" aria-describedby="msMessagesInfo" placeholder="Để trống để dùng các câu có sẵn"></textarea>
+              <div class="counter" id="msMessagesInfo" aria-live="polite">0/30 câu</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="savebar" data-savebar="ho-so">
+          <span class="savebar-status" aria-live="polite">Chưa có thay đổi</span>
+          <div class="savebar-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-act="discard">Huỷ thay đổi</button>
+            <button class="btn btn-primary" type="button" data-act="save">Lưu thay đổi</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ÂM NHẠC ===== -->
+      <section class="panel wide tab-panel" id="tab-am-nhac" role="tabpanel" aria-labelledby="tabbtn-am-nhac" tabindex="-1" hidden>
+        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+        <header class="tab-head">
+          <div>
+            <h2>Âm nhạc</h2>
+            <p class="muted" id="songStats">Danh sách nhạc ở trang 2.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost btn-sm" type="button" id="songsReset">Khôi phục mặc định</button>
+          </div>
+        </header>
+        <div class="tab-error" data-load-error hidden></div>
+
+        <div class="add-row">
+          <button class="btn btn-primary btn-sm" type="button" id="songAddFile">Thêm bài hát từ máy</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="songAddLinkToggle" aria-expanded="false" aria-controls="songLinkForm">Thêm bằng đường link</button>
+          <input type="file" id="songFiles" accept="audio/*,.mp3,.m4a,.aac,.ogg,.oga,.wav,.flac,.webm" multiple hidden>
+        </div>
+        <p class="hint">Tên bài / ca sĩ tự điền theo thẻ ID3 trong file, hoặc theo tên file dạng “Tên bài - Ca sĩ.mp3”.</p>
+
+        <form class="link-form section-card" id="songLinkForm" hidden novalidate>
+          <div class="form-row">
+            <label class="lbl" for="slUrl">Đường link file nhạc</label>
+            <input class="field" id="slUrl" type="url" inputmode="url" placeholder="https://…/bai-hat.mp3" autocomplete="off">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="lbl" for="slTitle">Tên bài</label>
+              <input class="field" id="slTitle" maxlength="120" autocomplete="off">
+            </div>
+            <div class="form-row">
+              <label class="lbl" for="slArtist">Ca sĩ / tác giả</label>
+              <input class="field" id="slArtist" maxlength="120" autocomplete="off">
+            </div>
+          </div>
+          <p class="error" id="slError" role="alert"></p>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm" type="button" id="slCancel">Đóng</button>
+            <button class="btn btn-primary btn-sm" type="submit">Thêm vào danh sách</button>
+          </div>
+        </form>
+
+        <ol class="song-list" id="songList" aria-label="Danh sách bài hát"></ol>
+        <p class="empty muted" id="songEmpty" hidden>Chưa có bài nào — hãy thêm bài hát đầu tiên 🎵</p>
+        <input type="file" id="coverFile" accept="image/*" hidden>
+
+        <div class="savebar" data-savebar="am-nhac">
+          <span class="savebar-status" aria-live="polite">Chưa có thay đổi</span>
+          <div class="savebar-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-act="discard">Huỷ thay đổi</button>
+            <button class="btn btn-primary" type="button" data-act="save">Lưu danh sách</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TRANG SÁCH ===== -->
+      <section class="panel wide tab-panel tab-pages" id="tab-trang-sach" role="tabpanel" aria-labelledby="tabbtn-trang-sach" tabindex="-1" hidden>
+        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+        <header class="tab-head">
+          <div>
+            <h2>Trang sách</h2>
+            <p class="muted">Các trang tự soạn nằm sau 2 trang cố định (hồ sơ + nhạc), đánh số từ trang 3.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost btn-sm" type="button" id="pagesReset">Khôi phục mặc định</button>
+          </div>
+        </header>
+        <div class="tab-error" data-load-error hidden></div>
+
+        <div class="pg-nav" id="pgNav" role="toolbar" aria-label="Chọn trang"></div>
+
+        <div class="seg pg-mode" id="pgMode" role="group" aria-label="Chế độ xem">
+          <button class="seg-btn" type="button" data-mode="edit" aria-pressed="true">Soạn</button>
+          <button class="seg-btn" type="button" data-mode="preview" aria-pressed="false">Xem trước</button>
+        </div>
+
+        <div class="pg-layout" id="pgLayout">
+          <div class="pg-editor" id="pgEditor">
+            <div class="pg-tools" id="pgTools"></div>
+            <ol class="block-list" id="blockList" aria-label="Các khối nội dung của trang"></ol>
+            <div class="pg-empty" id="pgEmpty" hidden></div>
+            <div class="add-block" id="addBlock">
+              <button class="btn btn-primary btn-sm" type="button" id="addBlockBtn" aria-haspopup="true" aria-expanded="false" aria-controls="addBlockMenu">+ Thêm khối</button>
+              <div class="add-menu" id="addBlockMenu" role="menu" aria-label="Chọn loại khối" hidden></div>
+            </div>
+          </div>
+          <aside class="pg-preview" id="pgPreview" aria-label="Xem trước trang">
+            <div class="pv-head">
+              <span class="pv-title" id="pvTitle">Xem trước</span>
+              <div class="seg seg-sm" id="pvSpreadToggle" role="group" aria-label="Số trang xem trước">
+                <button class="seg-btn" type="button" data-spread="2" aria-pressed="true">2 trang</button>
+                <button class="seg-btn" type="button" data-spread="1" aria-pressed="false">1 trang</button>
+              </div>
+            </div>
+            <div class="pv-viewport" id="pvViewport">
+              <div class="pv-scaler" id="pvScaler"><div class="pv-book" id="pvBook"></div></div>
+            </div>
+            <p class="hint pv-note">Bản xem trước dùng đúng bộ dựng trang của trang chính. Khối còn trống chỉ hiện mờ ở đây.</p>
+          </aside>
+        </div>
+
+        <input type="file" id="blockImageFile" accept="image/*" hidden>
+        <input type="file" id="galleryFiles" accept="image/*" multiple hidden>
+
+        <div class="savebar" data-savebar="trang-sach">
+          <span class="savebar-status" aria-live="polite">Chưa có thay đổi</span>
+          <div class="savebar-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-act="discard">Huỷ thay đổi</button>
+            <button class="btn btn-primary" type="button" data-act="save">Lưu các trang</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== KHO TỆP ===== -->
+      <section class="panel wide tab-panel" id="tab-kho" role="tabpanel" aria-labelledby="tabbtn-kho" tabindex="-1" hidden>
+        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+        <header class="tab-head">
+          <div>
+            <h2>Kho tệp</h2>
+            <p class="muted" id="mediaStats">Ảnh và nhạc bạn đã tải lên.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost btn-sm" type="button" id="mediaRefresh"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-refresh"></use></svg> Làm mới</button>
+          </div>
+        </header>
+        <div class="tabs" id="mediaFilters" role="group" aria-label="Lọc tệp">
+          <button class="tab active" type="button" data-filter="all" aria-pressed="true">Tất cả <span class="count" id="mcAll">0</span></button>
+          <button class="tab" type="button" data-filter="image" aria-pressed="false">Ảnh <span class="count" id="mcImage">0</span></button>
+          <button class="tab" type="button" data-filter="audio" aria-pressed="false">Nhạc <span class="count" id="mcAudio">0</span></button>
+          <button class="tab" type="button" data-filter="unused" aria-pressed="false">Chưa dùng <span class="count" id="mcUnused">0</span></button>
+        </div>
+        <p class="hint">“Đang dùng” = có trong nội dung đã lưu. Tệp tải lên mà không dùng tới sẽ tự xoá sau 24 giờ.</p>
+        <div class="media-grid" id="mediaGrid" aria-live="polite"></div>
+        <p class="empty muted" id="mediaEmpty" hidden>Chưa có tệp nào được tải lên.</p>
+      </section>
+
+      <a class="back dash-back" href="./"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-arrow-left"></use></svg> Về trang profile</a>
+    </div>
 
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/pages.js"></script>
+  <script src="js/admin-core.js"></script>
+  <script src="js/admin-id3.js"></script>
+  <script src="js/admin-crop.js"></script>
+  <script src="js/admin-profile.js"></script>
+  <script src="js/admin-music.js"></script>
+  <script src="js/admin-pages.js"></script>
+  <script src="js/admin-media.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

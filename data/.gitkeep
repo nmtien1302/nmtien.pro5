@@ -1,0 +1,3 @@
+# Thư mục này chứa letters.json (thư gửi admin), stats.json (lượt ghé thăm), content.json (nội dung admin đã lưu),
+# media.json (danh sách file tải lên) và thư mục uploads/ (ảnh / nhạc tải lên ở trang admin).
+# Server tự tạo khi chạy. Đừng xoá thư mục. Muốn đặt chỗ khác: biến DATA_DIR trong file .env.

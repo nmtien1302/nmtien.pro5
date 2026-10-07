@@ -12,9 +12,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/book.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/mascot.css">
 
-  <!-- Cấu hình + chế độ sáng/tối: nạp sớm để không bị nháy màu -->
+  <!-- Cấu hình + nội dung admin đã lưu + chế độ sáng/tối: nạp sớm để không bị nháy -->
   <script src="js/config.js"></script>
+  <script src="site-content.js"></script>
   <script src="js/icon-paths.js"></script>
   <script src="js/theme.js"></script>
 </head>
@@ -47,86 +51,109 @@
     </div>
   </div>
 
-  <!-- ===== PROFILE ===== -->
+  <!-- ===== CUỐN SÁCH PROFILE ===== -->
   <main class="page">
-    <section class="card" id="profileCard">
-      <!-- trang trái: profile -->
-      <div class="sheet col col-profile">
-        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
-        <div class="ribbon" id="ribbon"></div>
+    <section class="card book" id="profileCard" aria-roledescription="sách" aria-label="Cuốn sách profile">
+      <div class="book-stage" id="bookStage">
 
-        <div class="avatar-wrap">
-          <img id="avatar" alt="Avatar">
-        </div>
+        <!-- trang 1: profile -->
+        <article class="sheet face col col-profile" data-face="profile">
+          <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+          <div class="ribbon" id="ribbon"></div>
+          <div class="face-body">
+            <div class="face-inner">
+              <div class="avatar-wrap">
+                <img id="avatar" alt="Avatar">
+              </div>
 
-        <h1 class="name">
-          <span id="name"></span>
-          <span id="verified" class="badge" title="Đã xác minh" aria-label="Đã xác minh">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-check"></use></svg>
-          </span>
-        </h1>
-        <div class="rule" aria-hidden="true">✦</div>
-        <p class="bio" id="bio"></p>
+              <h1 class="name">
+                <span id="name"></span>
+                <span id="verified" class="badge" title="Đã xác minh" aria-label="Đã xác minh">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-check"></use></svg>
+                </span>
+              </h1>
+              <div class="rule" aria-hidden="true">✦</div>
+              <p class="bio" id="bio"></p>
 
-        <nav class="socials" id="socials" aria-label="Mạng xã hội"></nav>
-      </div>
-
-      <!-- trang phải: nhạc + thư -->
-      <div class="sheet col col-music">
-        <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
-        <!-- Music player -->
-        <div class="player" id="player">
-          <img class="cover" id="cover" alt="">
-          <div class="track">
-            <div class="track-title" id="trackTitle">—</div>
-            <div class="track-artist" id="trackArtist">—</div>
-          </div>
-          <div class="controls">
-            <button class="icon-btn" id="prevBtn" type="button" title="Bài trước" aria-label="Bài trước">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-player-skip-back"></use></svg>
-            </button>
-            <button class="icon-btn play" id="playBtn" type="button" title="Phát / Dừng" aria-label="Phát">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="playIcon" d=""/></svg>
-            </button>
-            <button class="icon-btn" id="nextBtn" type="button" title="Bài tiếp" aria-label="Bài tiếp">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-player-skip-forward"></use></svg>
-            </button>
-          </div>
-          <input type="range" class="progress" id="progress" min="0" max="100" value="0" step="0.1" aria-label="Tiến trình bài hát">
-          <div class="times">
-            <span id="currentTime">0:00</span>
-            <span id="duration">0:00</span>
-          </div>
-          <div class="player-extra">
-            <button class="text-btn" id="playlistBtn" type="button" aria-expanded="false" aria-controls="playlist">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-headphones"></use></svg>
-              Đổi nhạc
-              <svg class="icon caret" viewBox="0 0 24 24" aria-hidden="true"><path id="caretIcon" d=""/></svg>
-            </button>
-            <div class="volume">
-              <button class="icon-btn small" id="volumeBtn" type="button" title="Tắt / bật tiếng" aria-label="Âm lượng">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="volumeIcon" d=""/></svg>
-              </button>
-              <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.01" value="0.6" aria-label="Âm lượng">
+              <nav class="socials" id="socials" aria-label="Mạng xã hội"></nav>
             </div>
           </div>
-        </div>
+        </article>
 
-        <!-- Danh sách nhạc (ẩn/hiện) -->
-        <div class="playlist" id="playlist">
-          <ul id="playlistItems"></ul>
-        </div>
+        <!-- trang 2: nhạc + thư -->
+        <article class="sheet face col col-music" data-face="music">
+          <div class="frame" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+          <div class="face-body">
+            <div class="face-inner">
+              <!-- Music player -->
+              <div class="player" id="player">
+                <img class="cover" id="cover" alt="">
+                <div class="track">
+                  <div class="track-title" id="trackTitle">—</div>
+                  <div class="track-artist" id="trackArtist">—</div>
+                </div>
+                <div class="controls">
+                  <button class="icon-btn" id="prevBtn" type="button" title="Bài trước" aria-label="Bài trước">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-player-skip-back"></use></svg>
+                  </button>
+                  <button class="icon-btn play" id="playBtn" type="button" title="Phát / Dừng" aria-label="Phát">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="playIcon" d=""/></svg>
+                  </button>
+                  <button class="icon-btn" id="nextBtn" type="button" title="Bài tiếp" aria-label="Bài tiếp">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-player-skip-forward"></use></svg>
+                  </button>
+                </div>
+                <input type="range" class="progress" id="progress" min="0" max="100" value="0" step="0.1" aria-label="Tiến trình bài hát">
+                <div class="times">
+                  <span id="currentTime">0:00</span>
+                  <span id="duration">0:00</span>
+                </div>
+                <div class="player-extra">
+                  <button class="text-btn" id="playlistBtn" type="button" aria-expanded="false" aria-controls="playlist">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-headphones"></use></svg>
+                    Đổi nhạc
+                    <svg class="icon caret" viewBox="0 0 24 24" aria-hidden="true"><path id="caretIcon" d=""/></svg>
+                  </button>
+                  <div class="volume">
+                    <button class="icon-btn small" id="volumeBtn" type="button" title="Tắt / bật tiếng" aria-label="Âm lượng">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="volumeIcon" d=""/></svg>
+                    </button>
+                    <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.01" value="0.6" aria-label="Âm lượng">
+                  </div>
+                </div>
+              </div>
 
-        <button class="btn letter-btn" id="letterBtn" type="button">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-mail"></use></svg>
-          <span id="letterBtnText">Gửi thư cho admin</span>
-        </button>
+              <!-- Danh sách nhạc (ẩn/hiện) -->
+              <div class="playlist" id="playlist">
+                <ul id="playlistItems"></ul>
+              </div>
+
+              <button class="btn letter-btn" id="letterBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons/sprite.svg#tabler-mail"></use></svg>
+                <span id="letterBtnText">Gửi thư cho admin</span>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- trang 3 trở đi: main.js dựng từ "pages" (config.js hoặc nội dung admin đã lưu) -->
       </div>
+      <nav class="book-nav" id="bookNav" aria-label="Lật trang"></nav>
     </section>
 
     <footer class="footer">
       <span class="handle" id="footerText"></span>
       <span class="views-pill" id="views" hidden></span>
+      <!-- "đang phát" thu nhỏ: chỉ hiện khi đã lật qua trang nhạc (main.js) -->
+      <div class="mini-player" id="miniPlayer" role="group" aria-label="Nhạc đang chọn" hidden>
+        <button class="mini-play" id="miniPlay" type="button" title="Phát / Dừng" aria-label="Phát nhạc">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="miniPlayIcon" d=""/></svg>
+        </button>
+        <button class="mini-title" id="miniTitle" type="button" title="Mở trang nhạc">
+          <span class="mini-eq" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="mini-marquee"><span class="mini-text" id="miniText"></span></span>
+        </button>
+      </div>
     </footer>
   </main>
 
@@ -170,6 +197,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <audio id="audio" preload="metadata"></audio>
 
+  <script src="js/pages.js"></script>
+  <script src="js/book.js"></script>
+  <script src="js/mascot.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

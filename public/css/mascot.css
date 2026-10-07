@@ -1,0 +1,404 @@
+/* ============================================================
+ *  mascot.css — linh vật pixel sống trên trang (logic ở js/mascot.js)
+ *  Hình vẽ trên lưới 30 × 20 ô; --mu = cỡ 1 ô:
+ *    máy tính 2px → 60 × 40 px, điện thoại 1.5px → 45 × 30 px.
+ *  Màu thân lấy từ tuỳ chọn color (JS đặt --m-base / --m-shade / --m-eye / --m-light),
+ *  bóng thoại + hiệu ứng dùng biến màu của trang nên hợp cả 2 chế độ sáng / tối.
+ *  Lớp z-index: dưới modal (50), nút sáng/tối (60), toast (100).
+ * ============================================================ */
+.mascot {
+  --mu: 2px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  width: calc(var(--mu) * 30);
+  height: calc(var(--mu) * 20);
+  pointer-events: none;
+  visibility: hidden;
+  will-change: transform;
+}
+/* đậu trên sách → bám theo trang khi cuộn (mượt, không giật) */
+.mascot.is-anchored { position: absolute; }
+.mascot.is-ready { visibility: visible; }
+@media (max-width: 600px) {
+  .mascot { --mu: 1.5px; }
+}
+
+/* ---------- nút bấm = chính con linh vật ---------- */
+.mascot-pet {
+  position: absolute;
+  inset: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* vùng chạm rộng hơn hình một chút cho dễ bắt trên điện thoại */
+.mascot-pet::before { content: ""; position: absolute; inset: -8px -6px -4px; }
+.mascot-pet:focus { outline: none; }
+.mascot-pet:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+.mascot[data-state="held"] .mascot-pet { cursor: grabbing; }
+.mascot:is([data-state="held"], [data-state="fly"]) .mascot-pet:focus-visible { outline: none; }
+
+.mascot .m-tilt,
+.mascot .m-squash,
+.mascot .m-dir,
+.mascot .m-bop,
+.mascot .m-act { position: absolute; inset: 0; display: block; }
+.mascot .m-tilt { transform-origin: 50% 55%; }
+.mascot .m-squash,
+.mascot .m-bop,
+.mascot .m-act { transform-origin: 50% 100%; }
+.mascot .m-squash { transition: transform 0.12s ease; }
+.mascot.dir-left .m-dir { transform: scaleX(-1); }
+
+.m-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  shape-rendering: crispEdges;
+  pointer-events: none;
+}
+.m-px { fill: var(--m-base); }
+.m-sh { fill: var(--m-shade); }
+.m-ink { fill: var(--m-eye); }
+.m-hl { fill: var(--m-light); }
+
+/* bóng mờ dưới chân */
+.m-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--mu) * -1.5);
+  width: calc(var(--mu) * 24);
+  height: calc(var(--mu) * 3);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.32), transparent);
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.mascot[data-state="held"] .m-shadow,
+.mascot[data-state="fly"] .m-shadow { opacity: 0; }
+
+/* ---------- mắt: mở / nhắm / cười ^ ^ / tròn xoe / chóng mặt ---------- */
+.m-eyes { transform: translate(calc(var(--ex, 0) * 1px), calc(var(--ey, 0) * 1px)); }
+.m-eyes > g { display: none; }
+.mascot[data-face="open"] .m-eye-open,
+.mascot[data-face="closed"] .m-eye-closed,
+.mascot[data-face="happy"] .m-eye-happy,
+.mascot[data-face="big"] .m-eye-big,
+.mascot[data-face="dizzy"] .m-eye-dizzy { display: inline; }
+.mascot.is-blink[data-face="open"] .m-eye-open { display: none; }
+.mascot.is-blink[data-face="open"] .m-eye-closed { display: inline; }
+
+/* ---------- tay: buông xuống / giơ lên ---------- */
+.m-arm-lu,
+.m-arm-ru { display: none; }
+.m-arm-ru { transform-origin: 27px 3px; }
+.mascot:is([data-state="held"], [data-state="fly"], [data-act="hearts"], [data-act="dance"], [data-act="jump"], [data-act="backflip"], [data-act="special"]) :is(.m-arm-l, .m-arm-r) { display: none; }
+.mascot:is([data-state="held"], [data-state="fly"], [data-act="hearts"], [data-act="dance"], [data-act="jump"], [data-act="backflip"], [data-act="special"]) :is(.m-arm-lu, .m-arm-ru) { display: inline; }
+.mascot[data-act="wave"] .m-arm-r { display: none; }
+.mascot[data-act="wave"] .m-arm-ru { display: inline; animation: m-wave 0.36s steps(1) infinite; }
+
+/* ---------- ngồi ---------- */
+.mascot.is-sitting .m-sit { transform: translateY(3px); }
+
+/* ---------- thở (đứng yên) ---------- */
+.mascot[data-state="rest"] .m-upper { animation: m-breathe 2.6s steps(1) infinite; }
+.mascot.is-asleep .m-upper { animation-duration: 3.8s; }
+
+/* ---------- đi bộ: 2 cặp chân thay phiên ---------- */
+.mascot[data-state="walk"] :is(.m-leg-1, .m-leg-3) { animation: m-step 0.36s steps(1) infinite; }
+.mascot[data-state="walk"] :is(.m-leg-2, .m-leg-4) { animation: m-step 0.36s steps(1) -0.18s infinite; }
+.mascot[data-state="walk"] .m-upper { animation: m-walk-bob 0.18s steps(1) infinite; }
+
+/* ---------- bị cầm: chân đung đưa, tay quơ quào; đang bay: chân duỗi ---------- */
+.mascot[data-state="held"] :is(.m-leg-1, .m-leg-3) { animation: m-kick 0.26s steps(1) infinite; }
+.mascot[data-state="held"] :is(.m-leg-2, .m-leg-4) { animation: m-kick 0.26s steps(1) -0.13s infinite; }
+.mascot[data-state="held"] :is(.m-arm-lu, .m-arm-ru) { animation: m-flail 0.26s steps(1) infinite; }
+.mascot[data-state="fly"] .m-leg { transform: translateY(1px); }
+
+/* ---------- nhấn giữ: hơi bẹp; tiếp đất: bẹp rồi nảy; xuất hiện: bật ra ---------- */
+.mascot.is-pressed:not([data-state="held"]) .m-squash { transform: scale(1.06, 0.92); transition-duration: 0.08s; }
+.mascot.is-landing .m-squash { animation: m-land 0.42s ease-out; }
+.mascot.is-appearing .m-squash { animation: m-appear 0.5s ease-out; }
+
+/* ---------- nhún theo nhạc ---------- */
+.mascot.is-bopping .m-bop { animation: m-bop 1s ease-in-out infinite; }
+
+/* ---------- động tác (thời lượng khớp với ACTS trong mascot.js) ---------- */
+.mascot[data-act="wave"] .m-act { animation: m-sway 1.5s ease-in-out; }
+.mascot[data-act="jump"] .m-act { animation: m-jump 0.86s ease-in-out both; }
+.mascot[data-act="dance"] .m-act { animation: m-dance 0.5s ease-in-out 4; }
+.mascot[data-act="hearts"] .m-act { animation: m-happy 0.35s steps(1) 5; }
+.mascot[data-act="sneeze"] .m-act { animation: m-sneeze 1.15s ease-in-out both; }
+.mascot[data-act="backflip"] .m-act { transform-origin: 50% 55%; animation: m-backflip 0.96s ease-in-out both; }
+.mascot[data-act="special"] .m-act { transform-origin: 50% 55%; animation: m-special 1.5s ease-in-out both; }
+.mascot[data-act="hop"] .m-act { animation: m-hop 0.47s ease-out both; }
+/* bóng dưới chân thu nhỏ khi bật lên */
+.mascot[data-act="jump"] .m-shadow { animation: m-shadow-air 0.86s ease-in-out; }
+.mascot[data-act="backflip"] .m-shadow { animation: m-shadow-air 0.96s ease-in-out; }
+.mascot[data-act="special"] .m-shadow { animation: m-shadow-air 1.5s ease-in-out; }
+.mascot[data-act="hop"] .m-shadow { animation: m-shadow-air 0.47s ease-out; }
+
+@keyframes m-breathe { 0% { transform: translateY(0); } 50% { transform: translateY(1px); } }
+@keyframes m-step { 0% { transform: translateY(-1px); } 50% { transform: translateY(0); } }
+@keyframes m-walk-bob { 0% { transform: translateY(0); } 50% { transform: translateY(1px); } }
+@keyframes m-kick { 0% { transform: translateY(1px); } 50% { transform: translateY(2px); } }
+@keyframes m-flail { 0% { transform: translateY(0); } 50% { transform: translateY(1px); } }
+@keyframes m-wave { 0% { transform: rotate(-10deg); } 50% { transform: rotate(16deg); } }
+@keyframes m-land {
+  0% { transform: scale(1.28, 0.68); }
+  35% { transform: scale(0.88, 1.14); }
+  65% { transform: scale(1.06, 0.95); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes m-appear {
+  0% { opacity: 0; transform: scale(0.3, 0.3); }
+  55% { opacity: 1; transform: scale(1.12, 0.9); }
+  100% { opacity: 1; transform: scale(1, 1); }
+}
+@keyframes m-bop {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  25% { transform: translateY(calc(var(--mu) * -1.5)) rotate(0deg); }
+  50% { transform: translateY(0) rotate(4deg); }
+  75% { transform: translateY(calc(var(--mu) * -1.5)) rotate(0deg); }
+}
+@keyframes m-sway {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-4deg); }
+  70% { transform: rotate(3deg); }
+}
+/* nhảy + xoay người (lật trái ↔ phải giữa không trung) */
+@keyframes m-jump {
+  0% { transform: translateY(0) scale(1, 1); }
+  14% { transform: translateY(0) scale(1.15, 0.82); }
+  26% { transform: translateY(calc(var(--mu) * -14)) scale(0.9, 1.12); }
+  42% { transform: translateY(calc(var(--mu) * -22)) scale(-1, 1); }
+  58% { transform: translateY(calc(var(--mu) * -20)) scale(1, 1); }
+  80% { transform: translateY(0) scale(0.94, 1.06); }
+  88% { transform: translateY(0) scale(1.16, 0.82); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes m-dance {
+  0%, 100% { transform: translateX(calc(var(--mu) * -1)) translateY(0) rotate(-8deg); }
+  25% { transform: translateX(0) translateY(calc(var(--mu) * -2.5)) rotate(0deg); }
+  50% { transform: translateX(var(--mu)) translateY(0) rotate(8deg); }
+  75% { transform: translateX(0) translateY(calc(var(--mu) * -2.5)) rotate(0deg); }
+}
+@keyframes m-happy { 0% { transform: translateY(0); } 50% { transform: translateY(calc(var(--mu) * -2)); } }
+@keyframes m-sneeze {
+  0% { transform: translateX(0) rotate(0deg) scale(1, 1); }
+  34% { transform: translateX(0) rotate(7deg) scale(0.96, 1.07); }
+  40% { transform: translateX(calc(var(--mu) * -1.5)) rotate(-12deg) scale(1.1, 0.9); }
+  48% { transform: translateX(var(--mu)) rotate(-5deg) scale(1, 1); }
+  56% { transform: translateX(calc(var(--mu) * -1)) rotate(-3deg) scale(1, 1); }
+  64% { transform: translateX(calc(var(--mu) * 0.5)) rotate(-1deg) scale(1, 1); }
+  76%, 100% { transform: translateX(0) rotate(0deg) scale(1, 1); }
+}
+@keyframes m-backflip {
+  0% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  15% { transform: translateY(calc(var(--mu) * 1.5)) rotate(0deg) scale(1.12, 0.84); }
+  30% { transform: translateY(calc(var(--mu) * -16)) rotate(-60deg) scale(0.95, 1.08); }
+  50% { transform: translateY(calc(var(--mu) * -24)) rotate(-180deg) scale(1, 1); }
+  70% { transform: translateY(calc(var(--mu) * -14)) rotate(-300deg) scale(1, 1); }
+  84% { transform: translateY(0) rotate(-360deg) scale(1, 1); }
+  90% { transform: translateY(calc(var(--mu) * 1.5)) rotate(-360deg) scale(1.14, 0.84); }
+  100% { transform: translateY(0) rotate(-360deg) scale(1, 1); }
+}
+/* tuyệt chiêu: nhảy thật cao + lộn 2 vòng */
+@keyframes m-special {
+  0% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  12% { transform: translateY(calc(var(--mu) * 2)) rotate(0deg) scale(1.2, 0.78); }
+  30% { transform: translateY(calc(var(--mu) * -30)) rotate(-200deg) scale(0.95, 1.08); }
+  45% { transform: translateY(calc(var(--mu) * -42)) rotate(-400deg) scale(1, 1); }
+  62% { transform: translateY(calc(var(--mu) * -30)) rotate(-620deg) scale(1, 1); }
+  80% { transform: translateY(0) rotate(-720deg) scale(1, 1); }
+  88% { transform: translateY(calc(var(--mu) * 2)) rotate(-720deg) scale(1.2, 0.78); }
+  100% { transform: translateY(0) rotate(-720deg) scale(1, 1); }
+}
+@keyframes m-hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  20% { transform: translateY(0) scale(1.12, 0.86); }
+  50% { transform: translateY(calc(var(--mu) * -9)) scale(0.94, 1.08); }
+  80% { transform: translateY(0) scale(1.08, 0.92); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes m-shadow-air {
+  0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+  45% { opacity: 0.45; transform: translateX(-50%) scale(0.5); }
+}
+
+/* ============================================================
+ *  HIỆU ỨNG PIXEL: bụi, tim, nốt nhạc, lấp lánh, "!", Z z z
+ * ============================================================ */
+.mascot-fx { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.m-fx {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  animation-duration: var(--dur, 1s);
+  animation-delay: var(--delay, 0s);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+.m-fx svg { display: block; width: auto; height: 100%; overflow: visible; shape-rendering: crispEdges; }
+.m-fx-heart {
+  height: calc(var(--mu) * 6);
+  fill: var(--accent);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
+  animation-name: m-fx-rise;
+}
+.m-fx-note {
+  height: calc(var(--mu) * 7);
+  fill: var(--gold);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
+  animation-name: m-fx-note;
+}
+.m-fx-note.alt { fill: var(--on-leather, var(--paper)); }
+.m-fx-spark {
+  height: calc(var(--mu) * 5);
+  fill: var(--gold);
+  animation-name: m-fx-burst;
+}
+.m-fx-spark.alt { fill: var(--on-leather, var(--paper)); }
+.m-fx-bang {
+  height: calc(var(--mu) * 8);
+  fill: var(--on-leather, var(--paper));
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
+  animation-name: m-fx-pop;
+}
+.m-fx-dust {
+  width: calc(var(--mu) * 2);
+  height: calc(var(--mu) * 2);
+  background: var(--on-leather, var(--paper));
+  animation-name: m-fx-dust;
+}
+.m-fx-z {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(var(--mu) * 7);
+  line-height: 1;
+  color: var(--on-leather, var(--paper));
+  text-shadow: 0 1px 0 var(--leather), 1px 0 0 var(--leather), -1px 0 0 var(--leather), 0 -1px 0 var(--leather);
+  animation-name: m-fx-z;
+  animation-timing-function: linear;
+}
+.m-fx-z.small { font-size: calc(var(--mu) * 5); }
+
+@keyframes m-fx-rise {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(0deg) scale(0.4); }
+  15% { opacity: 1; transform: translate(-50%, calc(-50% - 4px)) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, -40px))) rotate(var(--rot, 0deg)) scale(0.85); }
+}
+@keyframes m-fx-note {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(0deg) scale(0.5); }
+  15% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); }
+  40% { transform: translate(calc(-50% - var(--dx, 10px) * 0.4), calc(-50% + var(--dy, -40px) * 0.35)) rotate(8deg) scale(1); }
+  70% { opacity: 1; transform: translate(calc(-50% + var(--dx, 10px) * 0.6), calc(-50% + var(--dy, -40px) * 0.7)) rotate(-8deg) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 10px)), calc(-50% + var(--dy, -40px))) rotate(6deg) scale(0.9); }
+}
+@keyframes m-fx-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(0deg) scale(0.2); }
+  25% { opacity: 1; transform: translate(calc(-50% + var(--dx, 0px) * 0.45), calc(-50% + var(--dy, 0px) * 0.45)) rotate(45deg) scale(1.15); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) rotate(90deg) scale(0.5); }
+}
+@keyframes m-fx-dust {
+  0% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(0.3); }
+}
+@keyframes m-fx-z {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-10deg) scale(0.6); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 16px)), calc(-50% + var(--dy, -40px))) rotate(8deg) scale(1.15); }
+}
+@keyframes m-fx-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  25% { opacity: 1; transform: translate(-50%, -50%) scale(1.35); }
+  40% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% - 6px)) scale(1); }
+}
+
+/* ============================================================
+ *  BÓNG THOẠI — mẩu giấy viền vàng, chữ Lora nghiêng
+ * ============================================================ */
+.mascot-bubble {
+  --tail: 50%;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  width: max-content;
+  max-width: min(240px, calc(100vw - 24px));
+  padding: 7px 12px 8px;
+  background-color: var(--paper);
+  background-image: var(--paper-grain);
+  color: var(--ink);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 3px var(--gold-faint), 0 8px 18px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 13.5px;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.94);
+  transform-origin: var(--tail) 100%;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.mascot-bubble.show { opacity: 1; transform: none; }
+.mascot-bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--tail);
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--paper);
+  border-right: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
+  transform: translateX(-50%) rotate(45deg);
+}
+.mascot-bubble.below { bottom: auto; top: calc(100% + 10px); transform: translateY(-4px) scale(0.94); transform-origin: var(--tail) 0; }
+.mascot-bubble.below.show { transform: none; }
+.mascot-bubble.below::after { bottom: auto; top: -6px; border: 0; border-left: 1px solid var(--gold); border-top: 1px solid var(--gold); }
+@media (max-width: 480px) {
+  .mascot-bubble { font-size: 13px; padding: 6px 10px 7px; }
+}
+
+/* ---------- tab bị ẩn: dừng mọi hoạt ảnh ---------- */
+.mascot.is-paused,
+.mascot.is-paused * { animation-play-state: paused !important; }
+
+/* ---------- giảm chuyển động: không hoạt ảnh, chỉ đổi dáng tối thiểu ---------- */
+.mascot.is-reduced *,
+.mascot.is-reduced *::before,
+.mascot.is-reduced *::after { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .mascot *,
+  .mascot *::before,
+  .mascot *::after { animation: none !important; }
+}
+.mascot.is-reduced:is([data-act="jump"], [data-act="hop"], [data-act="backflip"], [data-act="special"]) .m-act { transform: translateY(calc(var(--mu) * -3)); }
+.mascot.is-reduced:is([data-act="dance"], [data-act="sneeze"]) .m-act { transform: rotate(-6deg); }
+.mascot.is-reduced[data-act="wave"] .m-arm-ru { transform: rotate(14deg); }
+
+@media print {
+  .mascot { display: none !important; }
+}
